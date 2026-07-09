@@ -40,7 +40,9 @@ class _TriviaTabState extends State<TriviaTab> {
               surface: Color(0xFF1F214A),
               onSurface: Colors.white,
             ),
-            dialogBackgroundColor: const Color(0xFF0F1026),
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Color(0xFF0F1026),
+            ),
           ),
           child: child!,
         );

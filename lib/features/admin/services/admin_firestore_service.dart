@@ -90,12 +90,50 @@ class AdminFirestoreService {
     await _firestore.collection('users').doc(uid).delete();
   }
 
-  Future<void> updateUserProfile(String uid, {required String name, required String nickname, required String bio}) async {
-    await _firestore.collection('users').doc(uid).update({
+  Future<void> updateUserProfile(
+    String uid, {
+    required String name,
+    required String nickname,
+    required String bio,
+    String? gender,
+    String? relationshipStartDate,
+  }) async {
+    final updates = <String, dynamic>{
       'name': name,
       'nickname': nickname,
       'bio': bio,
-    });
+    };
+    if (gender != null) updates['gender'] = gender;
+    if (relationshipStartDate != null) updates['relationshipStartDate'] = relationshipStartDate;
+
+    final batch = _firestore.batch();
+    batch.update(_firestore.collection('users').doc(uid), updates);
+
+    if (relationshipStartDate != null) {
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        if (userData != null) {
+          final isPaired = userData['pairStatus'] == 'paired';
+          final pairId = userData['pairId'] as String?;
+          if (isPaired && pairId != null) {
+            final coupleDoc = await _firestore.collection('couples').doc(pairId).get();
+            if (coupleDoc.exists && coupleDoc.data() != null) {
+              final coupleData = coupleDoc.data()!;
+              final u1 = coupleData['user1Uid'] as String?;
+              final u2 = coupleData['user2Uid'] as String?;
+              final partnerUid = u1 == uid ? u2 : u2 == uid ? u1 : null;
+              if (partnerUid != null && partnerUid.isNotEmpty) {
+                batch.update(_firestore.collection('users').doc(partnerUid), {
+                  'relationshipStartDate': relationshipStartDate,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+    await batch.commit();
   }
 
   Future<void> manuallyPairUsers(String user1Uid, String user2Uid) async {
@@ -260,6 +298,65 @@ class AdminFirestoreService {
       'title': title,
       'body': body,
       'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // --- Support Chats Management ---
+
+  Stream<List<Map<String, dynamic>>> watchSupportChats() {
+    return _firestore
+        .collection('support_chats')
+        .orderBy('lastMessageTime', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map((doc) {
+              final data = doc.data();
+              data['chatId'] = doc.id;
+              return data;
+            }).toList());
+  }
+
+  Stream<List<Map<String, dynamic>>> watchSupportMessages(String chatId) {
+    return _firestore
+        .collection('support_chats')
+        .doc(chatId)
+        .collection('messages')
+        .orderBy('timestamp', descending: false)
+        .snapshots()
+        .map((snap) => snap.docs.map((doc) {
+              final data = doc.data();
+              data['id'] = doc.id;
+              return data;
+            }).toList());
+  }
+
+  Future<void> sendSupportMessage(String chatId, String text) async {
+    final messageRef = _firestore
+        .collection('support_chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc();
+
+    final batch = _firestore.batch();
+    
+    batch.set(messageRef, {
+      'senderId': 'admin',
+      'text': text,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    batch.update(_firestore.collection('support_chats').doc(chatId), {
+      'lastMessage': text,
+      'lastMessageTime': FieldValue.serverTimestamp(),
+      'unreadByUser': true,
+      'unreadByAdmin': false,
+    });
+
+    await batch.commit();
+  }
+
+  Future<void> markSupportChatAsRead(String chatId) async {
+    await _firestore.collection('support_chats').doc(chatId).update({
+      'unreadByAdmin': false,
     });
   }
 }

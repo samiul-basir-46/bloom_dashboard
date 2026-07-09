@@ -8,6 +8,7 @@ import 'users_tab.dart';
 import 'couples_tab.dart';
 import 'trivia_tab.dart';
 import 'milestones_tab.dart';
+import 'support_tab.dart';
 
 class DashboardShellScreen extends StatefulWidget {
   const DashboardShellScreen({super.key});
@@ -26,6 +27,7 @@ class _DashboardShellScreenState extends State<DashboardShellScreen> {
     CouplesTab(),
     TriviaTab(),
     MilestonesTab(),
+    SupportTab(),
   ];
 
   final List<String> _tabTitles = const [
@@ -34,6 +36,7 @@ class _DashboardShellScreenState extends State<DashboardShellScreen> {
     'Couples',
     'Trivia',
     'Milestones',
+    'Support',
   ];
 
   Future<void> _handleSignOut() async {
@@ -56,15 +59,26 @@ class _DashboardShellScreenState extends State<DashboardShellScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F1026),
+      drawer: !isDesktop ? _buildDrawer() : null,
       appBar: AppBar(
         backgroundColor: const Color(0xFF161930),
         elevation: 0,
+        leading: !isDesktop
+            ? Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(Icons.menu, color: Colors.white),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              )
+            : null,
         title: Row(
           children: [
-            const Icon(Icons.admin_panel_settings, color: Color(0xFF7C4DFF), size: 24),
-            const SizedBox(width: 10),
+            if (isDesktop) ...[
+              const Icon(Icons.admin_panel_settings, color: Color(0xFF7C4DFF), size: 24),
+              const SizedBox(width: 10),
+            ],
             Text(
-              'Bloom Control Panel - ${_tabTitles[_currentTabIndex]}',
+              isDesktop ? 'Bloom Control Panel - ${_tabTitles[_currentTabIndex]}' : _tabTitles[_currentTabIndex],
               style: GoogleFonts.dmSans(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -123,8 +137,53 @@ class _DashboardShellScreenState extends State<DashboardShellScreen> {
           ),
         ],
       ),
-      // Mobile Navigation Bottom Bar
-      bottomNavigationBar: !isDesktop ? _buildBottomNavigationBar() : null,
+    );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      backgroundColor: const Color(0xFF161930),
+      child: Column(
+        children: [
+          const SizedBox(height: 40),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.admin_panel_settings, color: Color(0xFF7C4DFF), size: 28),
+              const SizedBox(width: 10),
+              Text(
+                'Bloom Control',
+                style: GoogleFonts.dmSans(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 30),
+          _buildSidebarItem(index: 0, icon: Icons.dashboard_outlined, label: 'Overview', isDrawer: true),
+          _buildSidebarItem(index: 1, icon: Icons.people_outline, label: 'Users', isDrawer: true),
+          _buildSidebarItem(index: 2, icon: Icons.favorite_border, label: 'Couples', isDrawer: true),
+          _buildSidebarItem(index: 3, icon: Icons.quiz_outlined, label: 'Trivia', isDrawer: true),
+          _buildSidebarItem(index: 4, icon: Icons.star_outline, label: 'Milestones', isDrawer: true),
+          _buildSidebarItem(index: 5, icon: Icons.support_agent_outlined, label: 'Support', isDrawer: true),
+          const Spacer(),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            child: Column(
+              children: [
+                Divider(color: Colors.white10),
+                SizedBox(height: 8),
+                Text(
+                  'v1.0.0 (Alpha)',
+                  style: TextStyle(color: Colors.white24, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -140,6 +199,7 @@ class _DashboardShellScreenState extends State<DashboardShellScreen> {
           _buildSidebarItem(index: 2, icon: Icons.favorite_border, label: 'Couples'),
           _buildSidebarItem(index: 3, icon: Icons.quiz_outlined, label: 'Trivia'),
           _buildSidebarItem(index: 4, icon: Icons.star_outline, label: 'Milestones'),
+          _buildSidebarItem(index: 5, icon: Icons.support_agent_outlined, label: 'Support'),
           const Spacer(),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -163,10 +223,16 @@ class _DashboardShellScreenState extends State<DashboardShellScreen> {
     required int index,
     required IconData icon,
     required String label,
+    bool isDrawer = false,
   }) {
     final isSelected = _currentTabIndex == index;
     return InkWell(
-      onTap: () => setState(() => _currentTabIndex = index),
+      onTap: () {
+        setState(() => _currentTabIndex = index);
+        if (isDrawer) {
+          Navigator.pop(context);
+        }
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         decoration: BoxDecoration(
@@ -194,42 +260,6 @@ class _DashboardShellScreenState extends State<DashboardShellScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildBottomNavigationBar() {
-    return BottomNavigationBar(
-      currentIndex: _currentTabIndex,
-      onTap: (index) => setState(() => _currentTabIndex = index),
-      backgroundColor: const Color(0xFF161930),
-      selectedItemColor: const Color(0xFF7C4DFF),
-      unselectedItemColor: Colors.white54,
-      type: BottomNavigationBarType.fixed,
-      showUnselectedLabels: true,
-      selectedLabelStyle: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.bold),
-      unselectedLabelStyle: GoogleFonts.dmSans(fontSize: 11),
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.dashboard_outlined, size: 20),
-          label: 'Overview',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.people_outline, size: 20),
-          label: 'Users',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.favorite_border, size: 20),
-          label: 'Couples',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.quiz_outlined, size: 20),
-          label: 'Trivia',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.star_outline, size: 20),
-          label: 'Milestones',
-        ),
-      ],
     );
   }
 }

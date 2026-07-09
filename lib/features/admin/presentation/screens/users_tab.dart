@@ -67,101 +67,375 @@ class _UsersTabState extends State<UsersTab> {
     String currentName,
     String currentNickname,
     String currentBio,
+    String currentGender,
+    String currentRelationshipStartDate,
+    String profilePic,
   ) {
     final nameCtrl = TextEditingController(text: currentName);
     final nicknameCtrl = TextEditingController(text: currentNickname);
     final bioCtrl = TextEditingController(text: currentBio);
+    final dateCtrl = TextEditingController(text: currentRelationshipStartDate);
     final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1F214A),
-        title: Text(
-          'Edit User Profile',
-          style: GoogleFonts.dmSans(
-              color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameCtrl,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name',
-                    labelStyle: TextStyle(color: Colors.white54),
-                    enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white24)),
-                    focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF7C4DFF))),
-                  ),
-                  validator: (val) => val == null || val.trim().isEmpty
-                      ? 'Name is required'
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: nicknameCtrl,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'Nickname',
-                    labelStyle: TextStyle(color: Colors.white54),
-                    enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white24)),
-                    focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF7C4DFF))),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: bioCtrl,
-                  maxLines: 3,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'Bio description',
-                    labelStyle: TextStyle(color: Colors.white54),
-                    enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white24)),
-                    focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF7C4DFF))),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child:
-                const Text('Cancel', style: TextStyle(color: Colors.white54)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C4DFF)),
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              Navigator.pop(context);
-              try {
-                await _firestoreService.updateUserProfile(
-                  uid,
-                  name: nameCtrl.text.trim(),
-                  nickname: nicknameCtrl.text.trim(),
-                  bio: bioCtrl.text.trim(),
-                );
-                ToastUtil.showShortToast('Profile updated successfully.');
-              } catch (e) {
-                ToastUtil.showShortToast('Failed to update: $e');
+      builder: (context) {
+        String selectedGender = currentGender.toLowerCase();
+        
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> selectDate() async {
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now(),
+                firstDate: DateTime(1980),
+                lastDate: DateTime.now(),
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: const ColorScheme.dark(
+                        primary: Color(0xFF7C4DFF),
+                        onPrimary: Colors.white,
+                        surface: Color(0xFF1F214A),
+                        onSurface: Colors.white,
+                      ),
+                      dialogTheme: const DialogThemeData(
+                        backgroundColor: Color(0xFF161930),
+                      ),
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+              if (picked != null) {
+                final months = [
+                  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+                ];
+                setDialogState(() {
+                  dateCtrl.text = "${months[picked.month - 1]} ${picked.day}, ${picked.year}";
+                });
               }
-            },
-            child: const Text('Save'),
-          ),
-        ],
+            }
+
+            return Dialog(
+              backgroundColor: const Color(0xFF161930),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: Container(
+                width: 480,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white.withValues(alpha:0.08)),
+                ),
+                child: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Dialog Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Edit User Profile',
+                              style: GoogleFonts.dmSans(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white54, size: 20),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        // User Avatar
+                        Center(
+                          child: Stack(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: const Color(0xFF7C4DFF).withValues(alpha:0.5), width: 2),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF7C4DFF).withValues(alpha:0.2),
+                                      blurRadius: 10,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                                child: CircleAvatar(
+                                  radius: 40,
+                                  backgroundColor: const Color(0xFF7C4DFF).withValues(alpha:0.1),
+                                  backgroundImage: profilePic.isNotEmpty
+                                      ? NetworkImage(profilePic)
+                                      : null,
+                                  child: profilePic.isEmpty
+                                      ? Text(
+                                          currentName.isNotEmpty ? currentName[0].toUpperCase() : 'U',
+                                          style: GoogleFonts.dmSans(
+                                            color: const Color(0xFF7C4DFF),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 28,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Name Field
+                        TextFormField(
+                          controller: nameCtrl,
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          decoration: _customInputDecoration('Full Name', Icons.person_outline),
+                          validator: (val) => val == null || val.trim().isEmpty ? 'Name is required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Nickname Field
+                        TextFormField(
+                          controller: nicknameCtrl,
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          decoration: _customInputDecoration('Nickname', Icons.alternate_email_outlined),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Bio Field
+                        TextFormField(
+                          controller: bioCtrl,
+                          maxLines: 2,
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          decoration: _customInputDecoration('Bio description', Icons.info_outline),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Gender Field Section
+                        Text(
+                          'GENDER',
+                          style: GoogleFonts.dmSans(
+                            color: Colors.white38,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            // Male Option Card
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setDialogState(() {
+                                    selectedGender = 'male';
+                                  });
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: selectedGender == 'male'
+                                        ? const Color(0xFF7C4DFF).withValues(alpha:0.12)
+                                        : Colors.white.withValues(alpha:0.02),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: selectedGender == 'male'
+                                          ? const Color(0xFF7C4DFF)
+                                          : Colors.white.withValues(alpha:0.06),
+                                      width: 1.2,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.male,
+                                        color: selectedGender == 'male'
+                                            ? const Color(0xFF7C4DFF)
+                                            : Colors.white38,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Male',
+                                        style: GoogleFonts.dmSans(
+                                          color: selectedGender == 'male'
+                                              ? Colors.white
+                                              : Colors.white38,
+                                          fontSize: 13,
+                                          fontWeight: selectedGender == 'male' ? FontWeight.bold : FontWeight.normal,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            // Female Option Card
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setDialogState(() {
+                                    selectedGender = 'female';
+                                  });
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: selectedGender == 'female'
+                                        ? const Color(0xFFEC407A).withValues(alpha:0.12)
+                                        : Colors.white.withValues(alpha:0.02),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: selectedGender == 'female'
+                                          ? const Color(0xFFEC407A)
+                                          : Colors.white.withValues(alpha:0.06),
+                                      width: 1.2,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.female,
+                                        color: selectedGender == 'female'
+                                            ? const Color(0xFFEC407A)
+                                            : Colors.white38,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Female',
+                                        style: GoogleFonts.dmSans(
+                                          color: selectedGender == 'female'
+                                              ? Colors.white
+                                              : Colors.white38,
+                                          fontSize: 13,
+                                          fontWeight: selectedGender == 'female' ? FontWeight.bold : FontWeight.normal,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Relationship Start Date Field
+                        GestureDetector(
+                          onTap: selectDate,
+                          child: AbsorbPointer(
+                            child: TextFormField(
+                              controller: dateCtrl,
+                              style: const TextStyle(color: Colors.white, fontSize: 14),
+                              decoration: _customInputDecoration('Relationship Start Date', Icons.calendar_today_rounded),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+
+                        // Actions
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                            ),
+                            const SizedBox(width: 12),
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF7C4DFF), Color(0xFFEC407A)],
+                                ),
+                              ),
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                onPressed: () async {
+                                  if (!formKey.currentState!.validate()) return;
+                                  Navigator.pop(context);
+                                  try {
+                                    await _firestoreService.updateUserProfile(
+                                      uid,
+                                      name: nameCtrl.text.trim(),
+                                      nickname: nicknameCtrl.text.trim(),
+                                      bio: bioCtrl.text.trim(),
+                                      gender: selectedGender.isNotEmpty ? selectedGender : null,
+                                      relationshipStartDate: dateCtrl.text.trim().isNotEmpty ? dateCtrl.text.trim() : null,
+                                    );
+                                    ToastUtil.showShortToast('Profile updated successfully.');
+                                  } catch (e) {
+                                    ToastUtil.showShortToast('Failed to update: $e');
+                                  }
+                                },
+                                child: Text(
+                                  'Save',
+                                  style: GoogleFonts.dmSans(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  InputDecoration _customInputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
+      prefixIcon: Icon(icon, color: Colors.white30, size: 18),
+      filled: true,
+      fillColor: Colors.white.withValues(alpha:0.02),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha:0.06)),
       ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF7C4DFF), width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 
@@ -480,6 +754,8 @@ class _UsersTabState extends State<UsersTab> {
                       final nickname = user['nickname']?.toString() ?? '';
                       final bio = user['bio']?.toString() ?? '';
                       final profilePic = user['profilePicture']?.toString() ?? '';
+                      final gender = user['gender']?.toString() ?? '';
+                      final relationshipStartDate = user['relationshipStartDate']?.toString() ?? '';
                       final pairStatus =
                           user['pairStatus']?.toString() ?? 'none';
                       final inviteCode =
@@ -673,7 +949,7 @@ class _UsersTabState extends State<UsersTab> {
                                           context, uid, name);
                                     } else if (val == 'edit') {
                                       _showEditProfileDialog(
-                                          context, uid, name, nickname, bio);
+                                          context, uid, name, nickname, bio, gender, relationshipStartDate, profilePic);
                                     }
                                   },
                                 ),
@@ -685,48 +961,11 @@ class _UsersTabState extends State<UsersTab> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('NICKNAME',
-                                        style: TextStyle(
-                                            color: Colors.white30,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold)),
-                                    Text(
-                                        nickname.isNotEmpty
-                                            ? nickname
-                                            : 'None yet',
-                                        style: const TextStyle(
-                                            color: Colors.white70)),
-                                  ],
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('INVITE CODE',
-                                        style: TextStyle(
-                                            color: Colors.white30,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold)),
-                                    Text(inviteCode,
-                                        style: const TextStyle(
-                                            color: Colors.white70)),
-                                  ],
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('REGISTERED',
-                                        style: TextStyle(
-                                            color: Colors.white30,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold)),
-                                    Text(dateStr,
-                                        style: const TextStyle(
-                                            color: Colors.white70)),
-                                  ],
-                                ),
+                                _buildCardMetaItem('NICKNAME', nickname.isNotEmpty ? nickname : 'None yet'),
+                                _buildCardMetaItem('GENDER', gender.isNotEmpty ? gender.toUpperCase() : 'N/A'),
+                                _buildCardMetaItem('RELATIONSHIP START', relationshipStartDate.isNotEmpty ? relationshipStartDate : 'N/A'),
+                                _buildCardMetaItem('INVITE CODE', inviteCode),
+                                _buildCardMetaItem('REGISTERED', dateStr),
                               ],
                             ),
                             const SizedBox(height: 16),
@@ -781,6 +1020,30 @@ class _UsersTabState extends State<UsersTab> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCardMetaItem(String label, String value) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white30,
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }

@@ -121,6 +121,146 @@ class _CoupleCardState extends State<CoupleCard> {
     }
   }
 
+  void _showStoriesDialog(BuildContext context, String coupleId, String names) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: const Color(0xFF161930),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Container(
+          constraints: const BoxConstraints(
+            maxWidth: 600,
+            maxHeight: 800,
+          ),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Shared Stories - $names',
+                      style: GoogleFonts.dmSans(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white54),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: widget.firestoreService.watchCoupleSubcollection(coupleId, 'stories'),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: Color(0xFF7C4DFF)));
+                    }
+                    final stories = snapshot.data ?? [];
+                    if (stories.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'No stories uploaded yet.',
+                          style: TextStyle(color: Colors.white30),
+                        ),
+                      );
+                    }
+                    return ListView.separated(
+                      itemCount: stories.length,
+                      separatorBuilder: (context, index) => const Divider(color: Colors.white10, height: 24),
+                      itemBuilder: (context, index) {
+                        final story = stories[index];
+                        final title = story['title']?.toString() ?? 'No Title';
+                        final note = story['note']?.toString() ?? 'No Description';
+                        final imageUrl = story['imageUrl']?.toString() ?? '';
+                        final isMilestone = story['isMilestone'] == true;
+                        
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (imageUrl.isNotEmpty) ...[
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  imageUrl,
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (c, e, s) => Container(
+                                    width: 80,
+                                    height: 80,
+                                    color: Colors.white12,
+                                    child: const Icon(Icons.broken_image, color: Colors.white30),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                            ],
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          title,
+                                          style: GoogleFonts.dmSans(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isMilestone)
+                                        Container(
+                                          margin: const EdgeInsets.only(left: 8),
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFFFD700).withOpacity(0.15),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: const Color(0xFFFFD700), width: 0.5),
+                                          ),
+                                          child: const Text(
+                                            'Milestone',
+                                            style: TextStyle(color: Color(0xFFFFD700), fontSize: 9, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    note,
+                                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showUnpairConfirmation(BuildContext context, String coupleId, String names) {
     showDialog(
       context: context,
@@ -248,43 +388,80 @@ class _CoupleCardState extends State<CoupleCard> {
 
                     // Subcollection aggregates
                     const Text(
-                      'SHARED CONTENTS',
+                      'SHARED CONTENTS (TAP STORIES TO VIEW)',
                       style: TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
                       children: [
                         _buildCountItem(coupleId, 'tasks', Icons.task_alt, 'Tasks'),
                         _buildCountItem(coupleId, 'bucket_list', Icons.shopping_bag_outlined, 'Bucket'),
                         _buildCountItem(coupleId, 'special_days', Icons.cake_outlined, 'Special Days'),
+                        _buildCountItem(
+                          coupleId,
+                          'stories',
+                          Icons.photo_library_outlined,
+                          'Stories',
+                          onTap: () => _showStoriesDialog(context, coupleId, coupleNames),
+                        ),
                       ],
                     ),
                     
                     const SizedBox(height: 24),
                     
                     if (!isUnpaired) ...[
-                      SizedBox(
-                        width: double.infinity,
-                        height: 44,
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.redAccent),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 44,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Color(0xFF7C4DFF)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.photo_library_outlined, color: Color(0xFF7C4DFF), size: 16),
+                                label: Text(
+                                  'View Stories',
+                                  style: GoogleFonts.dmSans(
+                                    color: const Color(0xFF7C4DFF),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                onPressed: () => _showStoriesDialog(context, coupleId, coupleNames),
+                              ),
                             ),
                           ),
-                          icon: const Icon(Icons.heart_broken, color: Colors.redAccent, size: 16),
-                          label: Text(
-                            'Forcibly Unpair Couple',
-                            style: GoogleFonts.dmSans(
-                              color: Colors.redAccent,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: SizedBox(
+                              height: 44,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Colors.redAccent),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.heart_broken, color: Colors.redAccent, size: 16),
+                                label: Text(
+                                  'Forcibly Unpair Couple',
+                                  style: GoogleFonts.dmSans(
+                                    color: Colors.redAccent,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                onPressed: () => _showUnpairConfirmation(context, coupleId, coupleNames),
+                              ),
                             ),
                           ),
-                          onPressed: () => _showUnpairConfirmation(context, coupleId, coupleNames),
-                        ),
+                        ],
                       ),
                     ] else ...[
                       Container(
@@ -321,36 +498,40 @@ class _CoupleCardState extends State<CoupleCard> {
     );
   }
 
-  Widget _buildCountItem(String coupleId, String sub, IconData icon, String label) {
+  Widget _buildCountItem(String coupleId, String sub, IconData icon, String label, {VoidCallback? onTap}) {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: widget.firestoreService.watchCoupleSubcollection(coupleId, sub),
       builder: (context, snapshot) {
         final countStr = snapshot.hasData ? snapshot.data!.length.toString() : '...';
-        return Container(
-          width: 140, // Increased size for desktop layout
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.02),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withOpacity(0.04)),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: const Color(0xFF7C4DFF), size: 20),
-              const SizedBox(height: 6),
-              Text(
-                countStr,
-                style: GoogleFonts.dmSans(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+        return InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: 140,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.02),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.04)),
+            ),
+            child: Column(
+              children: [
+                Icon(icon, color: const Color(0xFF7C4DFF), size: 20),
+                const SizedBox(height: 6),
+                Text(
+                  countStr,
+                  style: GoogleFonts.dmSans(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
-              ),
-              Text(
-                label,
-                style: const TextStyle(color: Colors.white54, fontSize: 11),
-              ),
-            ],
+                Text(
+                  label,
+                  style: const TextStyle(color: Colors.white54, fontSize: 11),
+                ),
+              ],
+            ),
           ),
         );
       },
