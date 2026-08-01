@@ -32,7 +32,8 @@ class WebToast {
 
     switch (type) {
       case WebToastType.success:
-        accentColor = const Color(0xFF10B981); // Emerald Green
+        accentColor = const Color(0xFF10B981);
+        
         iconData = Icons.check_circle_rounded;
         break;
       case WebToastType.error:
@@ -44,8 +45,7 @@ class WebToast {
         iconData = Icons.warning_amber_rounded;
         break;
       case WebToastType.info:
-      default:
-        accentColor = const Color(0xFF3B82F6); // Royal Blue
+      accentColor = const Color(0xFF3B82F6); // Royal Blue
         iconData = Icons.info_rounded;
         break;
     }
