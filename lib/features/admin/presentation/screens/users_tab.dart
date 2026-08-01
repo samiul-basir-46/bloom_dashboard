@@ -49,9 +49,9 @@ class _UsersTabState extends State<UsersTab> {
               Navigator.pop(context);
               try {
                 await _firestoreService.deleteUserAccount(uid);
-                ToastUtil.showShortToast('User deleted successfully.');
+                ToastUtil.showSuccessToast('User deleted successfully.');
               } catch (e) {
-                ToastUtil.showShortToast('Failed to delete: $e');
+                ToastUtil.showErrorToast('Failed to delete: $e');
               }
             },
             child: const Text('Delete'),
@@ -384,9 +384,9 @@ class _UsersTabState extends State<UsersTab> {
                                       gender: selectedGender.isNotEmpty ? selectedGender : null,
                                       relationshipStartDate: dateCtrl.text.trim().isNotEmpty ? dateCtrl.text.trim() : null,
                                     );
-                                    ToastUtil.showShortToast('Profile updated successfully.');
+                                    ToastUtil.showSuccessToast('Profile updated successfully.');
                                   } catch (e) {
-                                    ToastUtil.showShortToast('Failed to update: $e');
+                                    ToastUtil.showErrorToast('Failed to update: $e');
                                   }
                                 },
                                 child: Text(
@@ -581,10 +581,10 @@ class _UsersTabState extends State<UsersTab> {
                                   selectedUser1Uid!,
                                   selectedUser2Uid!,
                                 );
-                                ToastUtil.showShortToast(
+                                ToastUtil.showSuccessToast(
                                     'Users paired successfully.');
                               } catch (e) {
-                                ToastUtil.showShortToast('Pairing failed: $e');
+                                ToastUtil.showErrorToast('Pairing failed: $e');
                               }
                             },
                       child: const Text('Pair Link'),
@@ -936,13 +936,13 @@ class _UsersTabState extends State<UsersTab> {
                                         await _firestoreService
                                             .toggleUserBlockStatus(
                                                 uid, !isBlocked);
-                                        ToastUtil.showShortToast(
+                                        ToastUtil.showSuccessToast(
                                           isBlocked
                                               ? 'User activated successfully.'
                                               : 'User blocked successfully.',
                                         );
                                       } catch (e) {
-                                        ToastUtil.showShortToast('Error: $e');
+                                        ToastUtil.showErrorToast('Error: $e');
                                       }
                                     } else if (val == 'delete') {
                                       _showDeleteConfirmation(

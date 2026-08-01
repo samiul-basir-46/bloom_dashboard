@@ -12,10 +12,10 @@ class AdminAuthService {
     final allowedDomains = ['@bae-window.com', '@admin.com'];
     final allowedEmails = ['admin@gmail.com', 'admin.window@gmail.com'];
     
-    bool isAllowed = allowedEmails.contains(email);
+    bool isAllowed = allowedEmails.contains(email.toLowerCase());
     if (!isAllowed) {
       for (final domain in allowedDomains) {
-        if (email.endsWith(domain)) {
+        if (email.toLowerCase().endsWith(domain)) {
           isAllowed = true;
           break;
         }
@@ -27,6 +27,15 @@ class AdminAuthService {
         code: 'not-authorized',
         message: 'Access Denied: Only authorized administrators can log in.',
       );
+    }
+
+    // Configure Web Persistence safely for Incognito / Strict Privacy mode
+    try {
+      await _auth.setPersistence(Persistence.LOCAL);
+    } catch (_) {
+      try {
+        await _auth.setPersistence(Persistence.SESSION);
+      } catch (_) {}
     }
 
     return await _auth.signInWithEmailAndPassword(email: email, password: password);

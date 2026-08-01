@@ -47,10 +47,12 @@ class AdminFirestoreService {
         .map((snap) => snap.docs.map((doc) {
               final data = doc.data();
               data['id'] = doc.id;
-              // Include path for context
               data['path'] = doc.reference.path;
               return data;
-            }).toList());
+            }).toList())
+        .handleError((error) {
+          return <Map<String, dynamic>>[];
+        });
   }
 
   // --- Users Management ---
@@ -64,7 +66,10 @@ class AdminFirestoreService {
               final data = doc.data();
               data['uid'] = doc.id;
               return data;
-            }).toList());
+            }).toList())
+        .handleError((error) {
+          return <Map<String, dynamic>>[];
+        });
   }
 
   Future<void> toggleUserBlockStatus(String uid, bool isBlocked) async {
@@ -177,7 +182,10 @@ class AdminFirestoreService {
               final data = doc.data();
               data['coupleId'] = doc.id;
               return data;
-            }).toList());
+            }).toList())
+        .handleError((error) {
+          return <Map<String, dynamic>>[];
+        });
   }
 
   // Fetch full details of a couple (combines partner names)
@@ -216,7 +224,10 @@ class AdminFirestoreService {
               final data = doc.data();
               data['id'] = doc.id;
               return data;
-            }).toList());
+            }).toList())
+        .handleError((error) {
+          return <Map<String, dynamic>>[];
+        });
   }
 
   // Force unpair a couple
@@ -264,7 +275,10 @@ class AdminFirestoreService {
               final data = doc.data();
               data['id'] = doc.id;
               return data;
-            }).toList());
+            }).toList())
+        .handleError((error) {
+          return <Map<String, dynamic>>[];
+        });
   }
 
   Future<void> addGlobalTrivia(String dateYmd, String question) async {
@@ -312,7 +326,10 @@ class AdminFirestoreService {
               final data = doc.data();
               data['chatId'] = doc.id;
               return data;
-            }).toList());
+            }).toList())
+        .handleError((error) {
+          return <Map<String, dynamic>>[];
+        });
   }
 
   Stream<List<Map<String, dynamic>>> watchSupportMessages(String chatId) {
@@ -326,7 +343,10 @@ class AdminFirestoreService {
               final data = doc.data();
               data['id'] = doc.id;
               return data;
-            }).toList());
+            }).toList())
+        .handleError((error) {
+          return <Map<String, dynamic>>[];
+        });
   }
 
   Future<void> sendSupportMessage(String chatId, String text) async {

@@ -46,7 +46,7 @@ class _SupportTabState extends State<SupportTab> {
       // Wait a brief moment for the message to render, then scroll down
       Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
     } catch (e) {
-      ToastUtil.showShortToast('Failed to send message: $e');
+      ToastUtil.showErrorToast('Failed to send message: $e');
     }
   }
 

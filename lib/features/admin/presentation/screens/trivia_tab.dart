@@ -64,10 +64,10 @@ class _TriviaTabState extends State<TriviaTab> {
 
     try {
       await _firestoreService.addGlobalTrivia(dateYmd, questionText);
-      ToastUtil.showShortToast('Trivia question scheduled successfully.');
+      ToastUtil.showSuccessToast('Trivia question scheduled successfully.');
       _questionController.clear();
     } catch (e) {
-      ToastUtil.showShortToast('Failed to schedule trivia: $e');
+      ToastUtil.showErrorToast('Failed to schedule trivia: $e');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

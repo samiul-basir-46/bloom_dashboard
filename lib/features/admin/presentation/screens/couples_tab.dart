@@ -285,9 +285,9 @@ class _CoupleCardState extends State<CoupleCard> {
               Navigator.pop(context);
               try {
                 await widget.firestoreService.forceUnpair(coupleId);
-                ToastUtil.showShortToast('Couple unpaired successfully.');
+                ToastUtil.showSuccessToast('Couple unpaired successfully.');
               } catch (e) {
-                ToastUtil.showShortToast('Unpairing failed: $e');
+                ToastUtil.showErrorToast('Unpairing failed: $e');
               }
             },
             child: const Text('Unpair'),
