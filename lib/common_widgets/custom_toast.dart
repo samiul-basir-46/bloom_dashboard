@@ -16,13 +16,16 @@ class WebToast {
     WebToastType type = WebToastType.info,
     Duration duration = const Duration(seconds: 4),
   }) {
-    final context = NavigationService.navigatorKey.currentContext;
-    if (context == null) return;
-
-    final overlayState = Overlay.of(context);
-
-    // Dismiss existing toast if showing
+    // Dismiss existing toast safely first
     dismiss();
+
+    // Retrieve the Root Overlay state so toasts survive page switches & route changes
+    final overlayState = NavigationService.navigatorKey.currentState?.overlay ??
+        (NavigationService.navigatorKey.currentContext != null
+            ? Overlay.of(NavigationService.navigatorKey.currentContext!, rootOverlay: true)
+            : null);
+
+    if (overlayState == null) return;
 
     Color accentColor;
     IconData iconData;
@@ -50,42 +53,42 @@ class WebToast {
     _currentOverlay = OverlayEntry(
       builder: (context) {
         return Positioned(
-          top: 24,
-          right: 24,
+          top: 30,
+          right: 30,
           child: Material(
-            color: Colors.transparent,
+            type: MaterialType.transparency,
             child: TweenAnimationBuilder<double>(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutBack,
               tween: Tween<double>(begin: 0.0, end: 1.0),
               builder: (context, value, child) {
                 return Transform.translate(
-                  offset: Offset(50 * (1 - value), 0),
+                  offset: Offset(60 * (1 - value), 0),
                   child: Opacity(
-                    opacity: value,
+                    opacity: value.clamp(0.0, 1.0),
                     child: child,
                   ),
                 );
               },
               child: Container(
                 width: 380,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1B1E38),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: accentColor.withOpacity(0.4),
+                    color: accentColor,
                     width: 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.4),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
+                      color: Colors.black.withValues(alpha: 0.5),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
                     ),
                     BoxShadow(
-                      color: accentColor.withOpacity(0.15),
-                      blurRadius: 12,
+                      color: accentColor.withValues(alpha: 0.2),
+                      blurRadius: 16,
                       spreadRadius: -2,
                     ),
                   ],
@@ -94,18 +97,18 @@ class WebToast {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: accentColor.withOpacity(0.15),
+                        color: accentColor.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         iconData,
                         color: accentColor,
-                        size: 20,
+                        size: 22,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -126,9 +129,9 @@ class WebToast {
                               style: GoogleFonts.dmSans(
                                 fontSize: 13,
                                 color: Colors.white70,
-                                height: 1.3,
+                                height: 1.35,
                               ),
-                              maxLines: 3,
+                              maxLines: 4,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
@@ -143,13 +146,13 @@ class WebToast {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.06),
+                            color: Colors.white.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
-                            Icons.close,
+                            Icons.close_rounded,
                             color: Colors.white70,
-                            size: 14,
+                            size: 16,
                           ),
                         ),
                       ),
@@ -163,7 +166,9 @@ class WebToast {
       },
     );
 
-    overlayState.insert(_currentOverlay!);
+    try {
+      overlayState.insert(_currentOverlay!);
+    } catch (_) {}
 
     _timer = Timer(duration, () {
       dismiss();
@@ -173,8 +178,12 @@ class WebToast {
   static void dismiss() {
     _timer?.cancel();
     _timer = null;
-    _currentOverlay?.remove();
-    _currentOverlay = null;
+    if (_currentOverlay != null) {
+      try {
+        _currentOverlay!.remove();
+      } catch (_) {}
+      _currentOverlay = null;
+    }
   }
 }
 
